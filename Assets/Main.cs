@@ -41,7 +41,10 @@ public class Main : MonoBehaviour
     private Vector3 baseXVector;
     private Vector3 baseYVector;
     private Vector3 baseZVector;
-    
+
+    public float determinantA;
+    public float determinantB;
+    public float determinantC;
     
     [SerializeField, HideInInspector]internal Matrix4x4 A;
     [SerializeField, HideInInspector]internal Matrix4x4 B;
@@ -54,55 +57,81 @@ public class Main : MonoBehaviour
     private void OnEnable()
     {
         vectors = GetComponent<VectorRenderer>();
-        baseXVector = new Vector3(1, 1, 1);
+        //Vector3.right
+        baseXVector = new Vector3(1, 0, 0);
+        //Vector3.up
         baseYVector = new Vector3(0, 1, 0);
+        //Vector3.forward
         baseZVector = new Vector3(0, 0, 1);
     }
     
     void Update()
     {
         columnVectorAarray = new Vector3[3];
-        columnVectorAarray[0] = new Vector3(A[0, 0], A[1, 0], A[2, 0]);
-        columnVectorAarray[1] = new Vector3(A[0, 1], A[1, 1], A[2, 1]);
-        columnVectorAarray[2] = new Vector3(A[0, 2], A[1, 2], A[2, 2]);
+        columnVectorAarray = GetColumnsFromMatrix(A);
         
         columnVectorBarray = new Vector3[3];
-        columnVectorBarray[0] = new Vector3(B[0, 0], B[1, 0], B[2, 0]);
-        columnVectorBarray[1] = new Vector3(B[0, 1], B[1, 1], B[2, 1]);
-        columnVectorBarray[2] = new Vector3(B[0, 2], B[1, 2], B[2, 2]);
+        columnVectorBarray = GetColumnsFromMatrix(B);
+
+        
         
         aTargetTransform = GetTransformFromMatrix(A);
         bTargetTransform = GetTransformFromMatrix(B);
 
         Vector3 tempXA;
-        tempXA.x = Vector3.Dot(columnVectorAarray[0], baseXVector);
-        tempXA.y = Vector3.Dot(columnVectorAarray[1], baseXVector);
-        tempXA.z = Vector3.Dot(columnVectorAarray[2], baseXVector);
+        tempXA.x = CalculateDotProductV3(columnVectorAarray[0], baseXVector);
+        tempXA.y = CalculateDotProductV3(columnVectorAarray[1], baseXVector);
+        tempXA.z = CalculateDotProductV3(columnVectorAarray[2], baseXVector);
 
         //Debug.Log(tempXA + " - " + new Vector3(A[2,0],A[2,1],A[2,2]) + " - " + baseXVector);
-        Vector3 magnA;
-        magnA.x = Vector3.Magnitude(columnVectorAarray[0]); 
-        magnA.y = Vector3.Magnitude(columnVectorAarray[1]); 
-        magnA.z = Vector3.Magnitude(columnVectorAarray[2]);
+        aTargetScale.x = CalculateMagnitude(columnVectorAarray[0]); 
+        aTargetScale.y = CalculateMagnitude(columnVectorAarray[1]); 
+        aTargetScale.z = CalculateMagnitude(columnVectorAarray[2]);
+        
+        bTargetScale.x = CalculateMagnitude(columnVectorBarray[0]); 
+        bTargetScale.y = CalculateMagnitude(columnVectorBarray[1]); 
+        bTargetScale.z = CalculateMagnitude(columnVectorBarray[2]);
 
-        Vector3 magnB;
-        magnB.x = Vector3.Magnitude(columnVectorBarray[0]); 
-        magnB.y = Vector3.Magnitude(columnVectorBarray[1]); 
-        magnB.z = Vector3.Magnitude(columnVectorBarray[2]);
+        columnVectorAarray[0] = columnVectorAarray[0]/CalculateMagnitude(columnVectorAarray[0]);
+        columnVectorAarray[1] = columnVectorAarray[1]/CalculateMagnitude(columnVectorAarray[1]);
+        columnVectorAarray[2] = columnVectorAarray[2]/CalculateMagnitude(columnVectorAarray[2]);
+
+        Matrix4x4 tempNormA = new Matrix4x4();
+        tempNormA.SetColumn(0,columnVectorAarray[0]);
+        tempNormA.SetColumn(1,columnVectorAarray[1]);
+        tempNormA.SetColumn(2,columnVectorAarray[2]);
+
+        Quaternion rotatexAxis = CalculateQuaternion(tempNormA);
         
-        
-        ////lerp-transform the vectors and insert into Matrix C////
+        Vector3 rotationVectorX1 = CalculateCrossProduct(columnVectorAarray[0], baseXVector);
+        Vector3 rotationVectorX2 = CalculateCrossProduct(columnVectorAarray[1], baseXVector);
+        Vector3 rotationVectorX3 = CalculateCrossProduct(columnVectorAarray[2], baseXVector);
+        Vector3 rotationVectorY = CalculateCrossProduct(columnVectorAarray[1], baseYVector);
+        Vector3 rotationVectorZ = CalculateCrossProduct(columnVectorAarray[2], baseZVector);
+
+        Vector3 finalRotation = rotationVectorX1 + rotationVectorX2 + rotationVectorX3;
+
+        ////lerp the transform-vectors and insert into Matrix C////
         SetTransformInMatrix(ref C, MyVectorLerp(aTargetTransform, bTargetTransform, Time));
 
-        cScale = MyVectorLerp(magnA, magnB, Time);
+        cScale = MyVectorLerp(aTargetScale, bTargetScale, Time);
         
-        Debug.Log(cScale);
         
         cTransform = GetTransformFromMatrix(C);
+
+        determinantA = CalculateDeterminant(A);
+        determinantB = CalculateDeterminant(B);
+        determinantC = CalculateDeterminant(C);
+        
         
         using (vectors.Begin())
         {
-            vectors.Draw(Vector3.zero, tempXA, Color.magenta);
+            vectors.Draw(Vector3.zero, baseXVector, Color.magenta);
+            vectors.Draw(Vector3.zero, columnVectorAarray[0], Color.cyan);
+            vectors.Draw(Vector3.zero, rotationVectorX1, Color.white);
+            vectors.Draw(Vector3.zero, rotationVectorX2, Color.white);
+            vectors.Draw(Vector3.zero, rotationVectorX3, Color.white);
+            vectors.Draw(Vector3.zero, finalRotation, Color.black);
             
             /*vectors.Draw(Vector3.zero, new Vector3(A[0,0],A[0,1],A[0,2]),Color.blue);
             vectors.Draw(Vector3.zero, new Vector3(A[1,0],A[1,1],A[1,2]),Color.blue);
@@ -115,10 +144,111 @@ public class Main : MonoBehaviour
         }
     }
 
-    public void SetMagnitudeInMatrix(ref Matrix4x4 x, Vector3 m)
+    //// Determinantfunktion för 4x4 matriser ////
+    private float CalculateDeterminant(Matrix4x4 m)
     {
+        float d=m[0,0] * (m[1,1]*(m[2,2]*m[3,3]-m[2,3]*m[3,2]) + m[1,2]*(m[2,3]*m[3,1]-m[2,1]*m[3,3]) + m[1,3]*(m[2,1]*m[3,2]-m[2,2]*m[3,1]))
+              - m[0,1] * (m[1,0]*(m[2,2]*m[3,3]-m[2,3]*m[3,2]) + m[1,2]*(m[2,3]*m[3,0]-m[2,0]*m[3,3]) + m[1,3]*(m[2,0]*m[3,2]-m[2,2]*m[3,0]))
+              + m[0,2] * (m[1,0]*(m[2,1]*m[3,3]-m[2,3]*m[3,1]) + m[1,1]*(m[2,3]*m[3,0]-m[2,0]*m[3,3]) + m[1,3]*(m[2,0]*m[3,1]-m[2,1]*m[3,0]))
+              - m[0,3] * (m[1,0]*(m[2,1]*m[3,2]-m[2,2]*m[3,1]) + m[1,1]*(m[2,2]*m[3,0]-m[2,0]*m[3,2]) + m[1,2]*(m[2,0]*m[3,1]-m[2,1]*m[3,0]));
         
+        return d;
     }
+    private float CalculateMagnitude(Vector3 v)
+    {
+        float u;
+
+        u = (float)Math.Sqrt(CalculateDotProductV3(v,v));
+        
+        return u;
+    }
+    private float CalculateDotProductV3(Vector3 v, Vector3 u)
+    {
+        float d = v.x * u.x + v.y * u.y + v.z * u.z;
+        return d;
+    }
+
+    private float CalculateDotProductV4(Vector4 v, Vector4 u)
+    {
+        float d = v.x * u.x  +  v.y * u.y  +  v.z * u.z  +  v.w * u.w;
+        return d;
+    }
+    private Vector3 CalculateCrossProduct(Vector3 lhs, Vector3 rhs)
+    {
+        Vector3 cross = new Vector3(lhs.y * rhs.z - lhs.z * rhs.y,
+                                    lhs.z * rhs.x - lhs.x * rhs.z,
+                                    lhs.x * rhs.y - lhs.y * rhs.x);
+        return cross;
+    }
+    private Quaternion CalculateQuaternion(Matrix4x4 m)
+    {
+        Quaternion result = Quaternion.identity;
+
+        float fourXSquaredMinus1 = m[0, 0] - m[1, 1] - m[2, 2];
+        float fourYSquaredMinus1 = m[1, 1] - m[0, 0] - m[2, 2];
+        float fourZSquaredMinus1 = m[2, 2] - m[0, 0] - m[1, 1];
+        float fourWSquaredMinus1 = m[0, 0] + m[1, 1] + m[2, 2];
+
+        int biggestIndex = 0;
+
+        float fourBiggestSquaredMinus1 = fourWSquaredMinus1;
+        if (fourXSquaredMinus1 > fourBiggestSquaredMinus1)
+        {
+            fourBiggestSquaredMinus1 = fourXSquaredMinus1;
+            biggestIndex = 1;
+        }
+        if (fourYSquaredMinus1 > fourBiggestSquaredMinus1)
+        {
+            fourBiggestSquaredMinus1 = fourYSquaredMinus1;
+            biggestIndex = 2;
+        }
+        if (fourZSquaredMinus1 > fourBiggestSquaredMinus1)
+        {
+            fourBiggestSquaredMinus1 = fourZSquaredMinus1;
+            biggestIndex = 3;
+        }
+
+        float biggestVal = (float)Math.Sqrt(fourBiggestSquaredMinus1 + 1.0f) * 0.5f;
+        float mult = 0.25f / biggestVal;
+
+        switch (biggestIndex)
+        {
+            case 0:
+                result.w = biggestVal;
+                result.x = (m[1, 2] - m[2, 1]) * mult;
+                result.y = (m[2, 0] - m[0, 2]) * mult;
+                result.z = (m[0, 1] - m[1, 0]) * mult;
+                break;
+            
+            case 1:
+                result.x = biggestVal;
+                result.w = (m[1, 2] - m[2, 1]) * mult;
+                result.y = (m[0, 1] + m[1, 0]) * mult;
+                result.z = (m[2, 0] + m[0, 2]) * mult;
+                break;
+            
+            case 2:
+                result.y = biggestVal;
+                result.x = (m[0, 1] + m[1, 0]) * mult;
+                result.w = (m[2, 0] - m[0, 2]) * mult;
+                result.z = (m[1, 2] + m[2, 1]) * mult;
+                break;
+            
+            case 3:
+                result.z = biggestVal;
+                result.x = (m[2, 0] + m[0, 2]) * mult;
+                result.y = (m[1, 2] + m[2, 1]) * mult;
+                result.w = (m[0, 1] - m[1, 0]) * mult;
+                break;
+        }
+        return result;
+    }
+    private Vector3 NormalizeVector3(Vector3 v)
+    {
+        Vector3 n = v / CalculateMagnitude(v);
+        return n;
+    }
+    //// Sätt Translationkomponenten i en Matris. ("Transform" är inte nödvändigtvis rätt ord, men det är det som används här!) ////
     public void SetTransformInMatrix(ref Matrix4x4 x, Vector3 v)
     {
         Matrix4x4 temp = x;
@@ -128,16 +258,24 @@ public class Main : MonoBehaviour
         temp[2,3] = v.z;
         x = temp;
     }
+    //// Hämta Translationkomponenten från en Matris. ("Transform" är inte nödvändigtvis rätt ord, men det är det som används här!) ////
     public Vector3 GetTransformFromMatrix(Matrix4x4 m)
     {
         return new Vector3(m.m03, m.m13, m.m23);
     }
-    
-    //Egenbyggd Lerpfunktion för vektorer
+    private Vector3[] GetColumnsFromMatrix(Matrix4x4 m)
+    {
+        Vector3[] vA = new Vector3[3];
+        vA[0] = new Vector3(m[0, 0], m[1, 0], m[2, 0]);
+        vA[1] = new Vector3(m[0, 1], m[1, 1], m[2, 1]);
+        vA[2] = new Vector3(m[0, 2], m[1, 2], m[2, 2]);
+
+        return vA;
+    }
+    //// Lerpfunktion för vektorer ////
     private static Vector3 MyVectorLerp(Vector3 a, Vector3 b, float t)
     {
-        Vector3 c;
-        c = (1.0f - t) * a + t * b;
+        Vector3 c = (1.0f - t) * a + t * b;
         return c;
     }
     
