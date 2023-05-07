@@ -210,7 +210,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
-  m_LocalPosition: {x: 0, y: 3, z: 0}
+  m_LocalPosition: {x: 0, y: 10, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -263,71 +263,74 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fa1dbffe2a31db46bf89a39d2887bdd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cubeSize: 1
   Time: 0
-  doATransforming: 0
-  doBTransforming: 0
-  doAScaling: 0
-  doBScaling: 0
-  doARotation: 0
-  doBRotation: 0
-  aTargetTransform: {x: -1.6158707, y: 0, z: -0.2706554}
-  bTargetTransform: {x: 1.5865868, y: 0, z: 2.1411824}
-  cTransform: {x: -1.6158707, y: 0, z: -0.2706554}
-  determinantA: -1
-  determinantB: -5
-  determinantC: 0
+  doTranslation: 1
+  doScaling: 1
+  doRotation: 1
+  showCoordinateArrows: 0
+  drawCubeA: 1
+  drawCubeB: 1
+  coordinateArrowPosition: {x: 0.18, y: 0, z: 0}
+  aTargetTranslation: {x: -4.9034586, y: 0, z: 0.67464733}
+  bTargetTranslation: {x: 4.4803853, y: 0, z: 1.9390178}
+  cTranslation: {x: -4.9034586, y: 0, z: 0.67464733}
+  aTargetRotation: {x: 0, y: 0.61631566, z: -0.7043607, w: 0.35218036}
+  bTargetRotation: {x: -0.21442252, y: 0.7504788, z: 0.53605634, w: -0.32163376}
+  cRotation: {x: 0, y: 0.6163156, z: -0.70436066, w: 0.35218033}
+  determinantA: 11
+  determinantB: -16
+  determinantC: 91.923836
   A:
-    e00: 2
-    e01: 0
-    e02: 1
-    e03: -1.6158707
-    e10: 1
-    e11: -2
+    e00: 1
+    e01: -8
+    e02: -2
+    e03: -4.9034586
+    e10: 0
+    e11: 1
     e12: 0
     e13: 0
-    e20: 1
-    e21: 1
+    e20: 5
+    e21: 0
     e22: 1
-    e23: -0.2706554
+    e23: 0.67464733
     e30: 0
     e31: 0
     e32: 0
     e33: 1
   B:
-    e00: 1
-    e01: 0
-    e02: 2
-    e03: 1.5865868
-    e10: 6
-    e11: 1
-    e12: 0
+    e00: -1
+    e01: -3
+    e02: -2
+    e03: 4.4803853
+    e10: 0
+    e11: -1
+    e12: 9
     e13: 0
-    e20: 3
-    e21: 0
-    e22: 1
-    e23: 2.1411824
+    e20: 0
+    e21: -2
+    e22: 2
+    e23: 1.9390178
     e30: 0
     e31: 0
     e32: 0
     e33: 1
   C:
-    e00: 0
-    e01: 0
-    e02: 0
-    e03: -1.6158707
-    e10: 0
-    e11: 0
-    e12: 0
+    e00: -3.8341453
+    e01: -3.9998791
+    e02: -0.97069603
+    e03: -4.9034586
+    e10: 2.5297456
+    e11: 0.062499512
+    e12: -1.9413921
     e13: 0
-    e20: 0
-    e21: 0
-    e22: 0
-    e23: -0.2706554
+    e20: 2.2135274
+    e21: -6.9997888
+    e22: 0.5373498
+    e23: 0.67464733
     e30: 0
     e31: 0
     e32: 0
-    e33: 0
+    e33: 1
 --- !u!4 &716533989
 Transform:
   m_ObjectHideFlags: 0

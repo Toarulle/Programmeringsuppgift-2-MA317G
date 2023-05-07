@@ -8,39 +8,41 @@ using UnityEditor;
 using UnityEngine.Subsystems;
 using Vectors;
 
+////////////////////////////
+/// Källor:              ///
+/// https://gamemath.com ///
+/// Föreläsningar        ///
+////////////////////////////
+
 
 [ExecuteAlways]
 [RequireComponent(typeof(VectorRenderer))]
 public class Main : MonoBehaviour
 {
     private VectorRenderer vectors;
-
     
-    [Range(0,5f)]public float cubeSize = 1f;
     [Range(0,1f)]public float Time = 0.0f;
 
-    public bool doATransforming;
-    public bool doBTransforming;
-    public bool doAScaling;
-    public bool doBScaling;
-    public bool doARotation;
-    public bool doBRotation;
+    public bool doTranslation;
+    public bool doScaling;
+    public bool doRotation;
+    public bool showCoordinateArrows;
+    public bool drawCubeA;
+    public bool drawCubeB;
+
+    [SerializeField, HideInInspector]internal Vector3 coordinateArrowPosition;
     
-    public Vector3 aTargetTransform;
-    public Vector3 bTargetTransform;
-    public Vector3 cTransform;
+    public Vector3 aTargetTranslation;
+    public Vector3 bTargetTranslation;
+    public Vector3 cTranslation;
 
     private Vector3 aTargetScale;
     private Vector3 bTargetScale;
     private Vector3 cScale;
 
-    private Quaternion aTargetRotation;
-    private Quaternion bTargetRotation;
-    private Quaternion cRotation;
-
-    private Vector3 baseXVector;
-    private Vector3 baseYVector;
-    private Vector3 baseZVector;
+    public Quaternion aTargetRotation;
+    public Quaternion bTargetRotation;
+    public Quaternion cRotation;
 
     public float determinantA;
     public float determinantB;
@@ -54,71 +56,92 @@ public class Main : MonoBehaviour
     private Vector3[] columnVectorAarray;
     private Vector3[] columnVectorBarray;
 
+    private Vector3 finalRotationX;
+    private Vector3 finalRotationY;
+    private Vector3 finalRotationZ;
+
     private void OnEnable()
     {
         vectors = GetComponent<VectorRenderer>();
-        //Vector3.right
-        baseXVector = new Vector3(1, 0, 0);
-        //Vector3.up
-        baseYVector = new Vector3(0, 1, 0);
-        //Vector3.forward
-        baseZVector = new Vector3(0, 0, 1);
     }
     
     void Update()
     {
+        //// Default values, if any of the "Do X"-Bools are disabled.
+        finalRotationX = Vector3.right;
+        finalRotationY = Vector3.up;
+        finalRotationZ = Vector3.forward;
+        aTargetRotation = Quaternion.identity;
+        bTargetRotation = Quaternion.identity;
+        aTargetTranslation = Vector3.zero;
+        bTargetTranslation = Vector3.zero;
+        aTargetScale = Vector3.one;
+        bTargetScale = Vector3.one;
+        
+        // Plocka ur de tre första kolumnvektorerna ur Matris A och B, sätt in i en Lista. 
         columnVectorAarray = new Vector3[3];
         columnVectorAarray = GetColumnsFromMatrix(A);
         
         columnVectorBarray = new Vector3[3];
         columnVectorBarray = GetColumnsFromMatrix(B);
 
-        
-        
-        aTargetTransform = GetTransformFromMatrix(A);
-        bTargetTransform = GetTransformFromMatrix(B);
+        // Plocka ur Translationen
+        if (doTranslation)
+        {
+            aTargetTranslation = GetTranslationFromMatrix(A);
+            bTargetTranslation = GetTranslationFromMatrix(B);
+        }
 
-        Vector3 tempXA;
-        tempXA.x = CalculateDotProductV3(columnVectorAarray[0], baseXVector);
-        tempXA.y = CalculateDotProductV3(columnVectorAarray[1], baseXVector);
-        tempXA.z = CalculateDotProductV3(columnVectorAarray[2], baseXVector);
-
-        //Debug.Log(tempXA + " - " + new Vector3(A[2,0],A[2,1],A[2,2]) + " - " + baseXVector);
-        aTargetScale.x = CalculateMagnitude(columnVectorAarray[0]); 
-        aTargetScale.y = CalculateMagnitude(columnVectorAarray[1]); 
-        aTargetScale.z = CalculateMagnitude(columnVectorAarray[2]);
+        // Beräkna magnituden för kolumn 0,1 och 2, både A och B matris
+        if (doScaling)
+        {
+            aTargetScale.x = CalculateMagnitude(columnVectorAarray[0]); 
+            aTargetScale.y = CalculateMagnitude(columnVectorAarray[1]); 
+            aTargetScale.z = CalculateMagnitude(columnVectorAarray[2]);
         
-        bTargetScale.x = CalculateMagnitude(columnVectorBarray[0]); 
-        bTargetScale.y = CalculateMagnitude(columnVectorBarray[1]); 
-        bTargetScale.z = CalculateMagnitude(columnVectorBarray[2]);
-
-        columnVectorAarray[0] = columnVectorAarray[0]/CalculateMagnitude(columnVectorAarray[0]);
-        columnVectorAarray[1] = columnVectorAarray[1]/CalculateMagnitude(columnVectorAarray[1]);
-        columnVectorAarray[2] = columnVectorAarray[2]/CalculateMagnitude(columnVectorAarray[2]);
+            bTargetScale.x = CalculateMagnitude(columnVectorBarray[0]); 
+            bTargetScale.y = CalculateMagnitude(columnVectorBarray[1]); 
+            bTargetScale.z = CalculateMagnitude(columnVectorBarray[2]);   
+        }
 
         Matrix4x4 tempNormA = new Matrix4x4();
-        tempNormA.SetColumn(0,columnVectorAarray[0]);
-        tempNormA.SetColumn(1,columnVectorAarray[1]);
-        tempNormA.SetColumn(2,columnVectorAarray[2]);
+        Matrix4x4 tempNormB = new Matrix4x4();
 
-        Quaternion rotatexAxis = CalculateQuaternion(tempNormA);
+        // Normalisera vektorerna och stoppa in i temporära Normal-matriser 
+        for (int i = 0; i < columnVectorAarray.Length; i++)
+        {
+            tempNormA.SetColumn(i,(columnVectorAarray[i]));
+            tempNormB.SetColumn(i,(columnVectorBarray[i]));
+        }
         
-        Vector3 rotationVectorX1 = CalculateCrossProduct(columnVectorAarray[0], baseXVector);
-        Vector3 rotationVectorX2 = CalculateCrossProduct(columnVectorAarray[1], baseXVector);
-        Vector3 rotationVectorX3 = CalculateCrossProduct(columnVectorAarray[2], baseXVector);
-        Vector3 rotationVectorY = CalculateCrossProduct(columnVectorAarray[1], baseYVector);
-        Vector3 rotationVectorZ = CalculateCrossProduct(columnVectorAarray[2], baseZVector);
-
-        Vector3 finalRotation = rotationVectorX1 + rotationVectorX2 + rotationVectorX3;
-
-        ////lerp the transform-vectors and insert into Matrix C////
-        SetTransformInMatrix(ref C, MyVectorLerp(aTargetTransform, bTargetTransform, Time));
-
+        //// Calculate the Quaternion from the normalized rotational matrices
+        //// Only do rotations if Bool
+        if (doRotation)
+        {
+            aTargetRotation = NormalizeQuaternion(CalculateQuaternion(tempNormA));
+            bTargetRotation = NormalizeQuaternion(CalculateQuaternion(tempNormB));
+        }
+        
+        //// Lerp the transform-vectors and insert into Matrix C
+        SetTranslationInMatrix(ref C, MyVectorLerp(aTargetTranslation, bTargetTranslation, Time));
+        //// Lerp the scaling
         cScale = MyVectorLerp(aTargetScale, bTargetScale, Time);
+        //// Lerp the rotation
+        cRotation = MyQLerp(aTargetRotation, bTargetRotation, Time);
         
-        
-        cTransform = GetTransformFromMatrix(C);
+        //// Rotation for each axis 
+        finalRotationX = cRotation * Vector3.right;
+        finalRotationY = cRotation * Vector3.up;
+        finalRotationZ = cRotation * Vector3.forward;
 
+
+        // Input the calculated rotation and scale into Matrix C
+        SetRotationAndScaleInMatrix(ref C, cRotation, cScale);
+        
+        //Get the lerped translation from Matrix C. -Not sure why I did it this way on only the translation-
+        cTranslation = GetTranslationFromMatrix(C);
+
+        // Calculate the determinants so they are updated and seen in the inspector
         determinantA = CalculateDeterminant(A);
         determinantB = CalculateDeterminant(B);
         determinantC = CalculateDeterminant(C);
@@ -126,24 +149,28 @@ public class Main : MonoBehaviour
         
         using (vectors.Begin())
         {
-            vectors.Draw(Vector3.zero, baseXVector, Color.magenta);
-            vectors.Draw(Vector3.zero, columnVectorAarray[0], Color.cyan);
-            vectors.Draw(Vector3.zero, rotationVectorX1, Color.white);
-            vectors.Draw(Vector3.zero, rotationVectorX2, Color.white);
-            vectors.Draw(Vector3.zero, rotationVectorX3, Color.white);
-            vectors.Draw(Vector3.zero, finalRotation, Color.black);
+            // Draw arrows corresponding to the calculated CURRENT LERPED rotation. They react to TIME variable
+            // Only draw when bool is enabled. They have darker colours for easier discerning.
+            if (showCoordinateArrows)
+            {
+                vectors.Draw(coordinateArrowPosition, coordinateArrowPosition+finalRotationX, new Color(0.45f, 0f, 0f));
+                vectors.Draw(coordinateArrowPosition, coordinateArrowPosition+finalRotationY, new Color(0f, 0.45f, 0f));
+                vectors.Draw(coordinateArrowPosition, coordinateArrowPosition+finalRotationZ, new Color(0f, 0f, 0.45f));   
+            }
             
-            /*vectors.Draw(Vector3.zero, new Vector3(A[0,0],A[0,1],A[0,2]),Color.blue);
-            vectors.Draw(Vector3.zero, new Vector3(A[1,0],A[1,1],A[1,2]),Color.blue);
-            vectors.Draw(Vector3.zero, new Vector3(A[2,0],A[2,1],A[2,2]),Color.blue);
+            // Draw cube from A-matrix and/or B-matrix. They have darker colours for easier discerning
+            if (drawCubeA)
+                DrawCubeDark(aTargetTranslation, aTargetRotation*Vector3.right*aTargetScale.x, aTargetRotation*Vector3.up*aTargetScale.y, aTargetRotation*Vector3.forward*aTargetScale.z);
+            if (drawCubeB)
+                DrawCubeDark(bTargetTranslation, bTargetRotation*Vector3.right*bTargetScale.x, bTargetRotation*Vector3.up*bTargetScale.y, bTargetRotation*Vector3.forward*bTargetScale.z);    
             
-            vectors.Draw(Vector3.zero, new Vector3(A[0,0],A[1,0],A[2,0]),Color.magenta);
-            vectors.Draw(Vector3.zero, new Vector3(A[0,1],A[1,1],A[2,1]),Color.magenta);
-            vectors.Draw(Vector3.zero, new Vector3(A[0,2],A[1,2],A[2,2]),Color.magenta);*/
-            DrawCube(cTransform, cScale, vectors);
+            // Draw the interpolated cube
+            DrawCube(cTranslation, finalRotationX*cScale.x, finalRotationY*cScale.y, finalRotationZ*cScale.z);
         }
     }
 
+        //// FUNKTIONER ////
+    
     //// Determinantfunktion för 4x4 matriser ////
     private float CalculateDeterminant(Matrix4x4 m)
     {
@@ -154,6 +181,8 @@ public class Main : MonoBehaviour
         
         return d;
     }
+    
+    //// Magnitud-funktion ////
     private float CalculateMagnitude(Vector3 v)
     {
         float u;
@@ -162,17 +191,22 @@ public class Main : MonoBehaviour
         
         return u;
     }
+    
+    //// Beräkna Skalärprodukten av 3D-vektorer ////
     private float CalculateDotProductV3(Vector3 v, Vector3 u)
     {
         float d = v.x * u.x + v.y * u.y + v.z * u.z;
         return d;
     }
-
+    
+    //// Beräkna Skalärprodukten av 4D-vektorer ////
     private float CalculateDotProductV4(Vector4 v, Vector4 u)
     {
         float d = v.x * u.x  +  v.y * u.y  +  v.z * u.z  +  v.w * u.w;
         return d;
     }
+    
+    //// Beräkna Kryssprodukten av 3D-vektorer ////
     private Vector3 CalculateCrossProduct(Vector3 lhs, Vector3 rhs)
     {
         Vector3 cross = new Vector3(lhs.y * rhs.z - lhs.z * rhs.y,
@@ -180,6 +214,8 @@ public class Main : MonoBehaviour
                                     lhs.x * rhs.y - lhs.y * rhs.x);
         return cross;
     }
+    
+    //// Beräkna fram en Kvaternion från en matris ////
     private Quaternion CalculateQuaternion(Matrix4x4 m)
     {
         Quaternion result = Quaternion.identity;
@@ -243,13 +279,29 @@ public class Main : MonoBehaviour
         }
         return result;
     }
+    
+    //// Normalisera en 3D-vektor ////
     private Vector3 NormalizeVector3(Vector3 v)
     {
         Vector3 n = v / CalculateMagnitude(v);
         return n;
     }
-    //// Sätt Translationkomponenten i en Matris. ("Transform" är inte nödvändigtvis rätt ord, men det är det som används här!) ////
-    public void SetTransformInMatrix(ref Matrix4x4 x, Vector3 v)
+
+    //// Normalisera en Kvaternion ////
+    private Quaternion NormalizeQuaternion(Quaternion q)
+    {
+        Quaternion qn;
+        float magnitude = (float)Math.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+        qn.x = q.x/magnitude;
+        qn.y = q.y/magnitude;
+        qn.z = q.z/magnitude;
+        qn.w = q.w/magnitude;
+
+        return qn;
+    }
+    
+    //// Sätt Translationkomponenten i en Matris. ////
+    private void SetTranslationInMatrix(ref Matrix4x4 x, Vector3 v)
     {
         Matrix4x4 temp = x;
         temp[0,3] = v.x;
@@ -258,11 +310,38 @@ public class Main : MonoBehaviour
         temp[2,3] = v.z;
         x = temp;
     }
-    //// Hämta Translationkomponenten från en Matris. ("Transform" är inte nödvändigtvis rätt ord, men det är det som används här!) ////
-    public Vector3 GetTransformFromMatrix(Matrix4x4 m)
+    
+    //// Sätt rotation och skalnings-komponenten i en Matris. ////
+    private void SetRotationAndScaleInMatrix(ref Matrix4x4 x, Quaternion q, Vector3 s)
+    {
+        
+        float magnitude = (float)Math.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+
+        //Sätt diagonalen
+        x[0, 0] = (1 - 2*(q.y * q.y) - 2*(q.z * q.z))*s.x;
+        x[1, 1] = (1 - 2*(q.x * q.x) - 2*(q.z * q.z))*s.y;
+        x[2, 2] = (1 - 2*(q.x * q.x) - 2*(q.y * q.y))*s.z;
+        
+        //Resten av första raden
+        x[0, 1] = (2*(q.x * q.y) + 2*(q.w * q.z))*s.y;
+        x[0, 2] = (2*(q.x * q.z) - 2*(q.w * q.y))*s.z;
+        
+        //Resten av andra raden
+        x[1, 0] = (2*(q.x * q.y) - 2*(q.w * q.z))*s.x;
+        x[1, 2] = (2*(q.y * q.z) + 2*(q.w * q.x))*s.z;
+        
+        //Resten av tredje raden
+        x[2, 0] = (2*(q.x * q.z) + 2*(q.w * q.y))*s.x;
+        x[2, 1] = (2*(q.y * q.z) - 2*(q.w * q.x))*s.y;
+    }
+    
+    //// Hämta Translationkomponenten från en Matris. ////
+    public Vector3 GetTranslationFromMatrix(Matrix4x4 m)
     {
         return new Vector3(m.m03, m.m13, m.m23);
     }
+    
+    //// Hämta de tre första kolumnerna från en matris och returnera en VectorArray som innehåller dem.
     private Vector3[] GetColumnsFromMatrix(Matrix4x4 m)
     {
         Vector3[] vA = new Vector3[3];
@@ -272,6 +351,7 @@ public class Main : MonoBehaviour
 
         return vA;
     }
+    
     //// Lerpfunktion för vektorer ////
     private static Vector3 MyVectorLerp(Vector3 a, Vector3 b, float t)
     {
@@ -279,37 +359,97 @@ public class Main : MonoBehaviour
         return c;
     }
     
-    private void DrawCube(Vector3 position, Vector3 size, VectorRenderer vectors)
+    //// Lerpfuktion för Kvaternioner ////
+    private static Quaternion MyQLerp(Quaternion a, Quaternion b, float t)
     {
-        //Parallel to X-axis arrows
-        vectors.Draw(position, 
-            new Vector3(position.x + cubeSize * size.x, position.y, position.z),Color.red);
-        vectors.Draw(position+new Vector3(0,cubeSize * size.y,0), 
-            new Vector3(position.x + cubeSize * size.x, position.y + cubeSize * size.y, position.z),Color.red);
-        vectors.Draw(position+new Vector3(0,0,cubeSize * size.z), 
-            new Vector3(position.x + cubeSize * size.x, position.y, position.z + cubeSize * size.z),Color.red);
-        vectors.Draw(position+new Vector3(0,cubeSize * size.y,cubeSize * size.z), 
-            new Vector3(position.x + cubeSize * size.x, position.y + cubeSize * size.y, position.z + cubeSize * size.z),Color.red);
+        Quaternion lerpedQ;
+
+        float cosTheta = a.w * b.w  +  a.x * b.x  +  a.y * b.y  +  a.z * b.z;
+
+        //If the dot product is negative, inverse (multiply by -1) one of the quaternions
+        //which will make it take a shorter path. 
+        if (cosTheta < 0.0f)
+        {
+            b.w = -b.w;
+            b.x = -b.x;
+            b.y = -b.y;
+            b.z = -b.z;
+            cosTheta = -cosTheta;
+        }
+        
+        //Check if they are very close together to protect against division with 0
+        float ka, kb;
+        if (cosTheta > 0.9999f)
+        {
+            //They are very close, just linear interpolation instead
+            ka = 1.0f - t;
+            kb = t;
+        }
+        else
+        {
+            //Calculate sin of angle from trig.
+            float sinTheta = (float)Math.Sqrt(1.0f - cosTheta * cosTheta);
+
+            //Calculate angle from its sin and cos
+            float theta = (float)Math.Atan2(sinTheta, cosTheta);
+
+            float oneOverSinTheta = 1.0f / sinTheta;
+
+            ka = (float)Math.Sin((1.0f - t) * theta) * oneOverSinTheta;
+            kb = (float)Math.Sin(t * theta) * oneOverSinTheta;
+        }
+        
+        //Interpolate
+        lerpedQ.x = a.x * ka + b.x * kb;
+        lerpedQ.y = a.y * ka + b.y * kb;
+        lerpedQ.z = a.z * ka + b.z * kb;
+        lerpedQ.w = a.w * ka + b.w * kb;
+
+        return lerpedQ;
+    }
+    
+    //// Rita en Kub av koordinataxlar ////
+    private void DrawCube(Vector3 pos, Vector3 vectorX, Vector3 vectorY, Vector3 vectorZ)
+    {
+         //Parallel to X-axis arrows
+        vectors.Draw(pos,pos + vectorX, Color.red);
+        vectors.Draw(pos+vectorY, pos+vectorY+vectorX, Color.red);
+        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorX, Color.red);
+        vectors.Draw(pos+vectorZ+vectorY, pos+vectorZ+vectorY+vectorX,Color.red);
         
         //Parallel to Y-axis arrows
-        vectors.Draw(position, 
-            new Vector3(position.x, position.y + cubeSize * size.y, position.z),Color.green);
-        vectors.Draw(position+new Vector3(cubeSize * size.x,0,0), 
-            new Vector3(position.x + cubeSize * size.x, position.y + cubeSize * size.y, position.z),Color.green);
-        vectors.Draw(position+new Vector3(0,0,cubeSize * size.z), 
-            new Vector3(position.x, position.y + cubeSize * size.y, position.z + cubeSize * size.z),Color.green);
-        vectors.Draw(position+new Vector3(cubeSize * size.x,0,cubeSize * size.z), 
-            new Vector3(position.x + cubeSize * size.x, position.y + cubeSize * size.y, position.z + cubeSize * size.z),Color.green);
-
+        vectors.Draw(pos,pos + vectorY, Color.green);
+        vectors.Draw(pos+vectorX, pos+vectorX+vectorY, Color.green);
+        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorY, Color.green);
+        vectors.Draw(pos+vectorZ+vectorX, pos+vectorZ+vectorX+vectorY,Color.green);
+        
         //Parallel to Z-axis arrows
-        vectors.Draw(position, 
-            new Vector3(position.x, position.y, position.z + cubeSize * size.z),Color.blue);
-        vectors.Draw(position+new Vector3(cubeSize * size.x,0,0), 
-            new Vector3(position.x + cubeSize * size.x, position.y, position.z + cubeSize * size.z),Color.blue);
-        vectors.Draw(position+new Vector3(0,cubeSize * size.y,0), 
-            new Vector3(position.x, position.y + cubeSize * size.y, position.z + cubeSize * size.z),Color.blue);
-        vectors.Draw(position+new Vector3(cubeSize * size.x,cubeSize * size.y,0), 
-            new Vector3(position.x + cubeSize * size.x, position.y + cubeSize * size.y, position.z + cubeSize * size.z),Color.blue);
+        vectors.Draw(pos,pos + vectorZ, Color.blue);
+        vectors.Draw(pos+vectorY, pos+vectorY+vectorZ, Color.blue);
+        vectors.Draw(pos+vectorX, pos+vectorX+vectorZ, Color.blue);
+        vectors.Draw(pos+vectorX+vectorY, pos+vectorX+vectorY+vectorZ,Color.blue);
+    }
+    
+    //// Rita en mörkare Kub av koordinataxlar ////
+    private void DrawCubeDark(Vector3 pos, Vector3 vectorX, Vector3 vectorY, Vector3 vectorZ)
+    {
+         //Parallel to X-axis arrows
+        vectors.Draw(pos,pos + vectorX, new Color(0.45f, 0f, 0f));
+        vectors.Draw(pos+vectorY, pos+vectorY+vectorX, new Color(0.45f, 0f, 0f));
+        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorX, new Color(0.45f, 0f, 0f));
+        vectors.Draw(pos+vectorZ+vectorY, pos+vectorZ+vectorY+vectorX,new Color(0.45f, 0f, 0f));
+        
+        //Parallel to Y-axis arrows
+        vectors.Draw(pos,pos + vectorY, new Color(0f, 0.45f, 0f));
+        vectors.Draw(pos+vectorX, pos+vectorX+vectorY,  new Color(0f, 0.45f, 0f));
+        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorY,  new Color(0f, 0.45f, 0f));
+        vectors.Draw(pos+vectorZ+vectorX, pos+vectorZ+vectorX+vectorY, new Color(0f, 0.45f, 0f));
+        
+        //Parallel to Z-axis arrows
+        vectors.Draw(pos,pos + vectorZ, new Color(0f, 0f, 0.45f));
+        vectors.Draw(pos+vectorY, pos+vectorY+vectorZ, new Color(0f, 0f, 0.45f));
+        vectors.Draw(pos+vectorX, pos+vectorX+vectorZ, new Color(0f, 0f, 0.45f));
+        vectors.Draw(pos+vectorX+vectorY, pos+vectorX+vectorY+vectorZ, new Color(0f, 0f, 0.45f));
     }
 }
 
@@ -323,7 +463,7 @@ public class MainEditor : Editor
         
         EditorGUI.BeginChangeCheck();
 
-        Vector3 bTransform = main.GetTransformFromMatrix(main.B); 
+        Vector3 bTransform = main.GetTranslationFromMatrix(main.B); 
         
         var newBTarget = Handles.PositionHandle(bTransform, main.transform.rotation);
         
@@ -342,7 +482,7 @@ public class MainEditor : Editor
         
         EditorGUI.BeginChangeCheck();
         
-        Vector3 aTransform = main.GetTransformFromMatrix(main.A);
+        Vector3 aTransform = main.GetTranslationFromMatrix(main.A);
 
         var newATarget = Handles.PositionHandle(aTransform, main.transform.rotation);
 
@@ -366,6 +506,18 @@ public class MainEditor : Editor
         if (!main) return;
         
         EditorGUI.BeginChangeCheck();
+
+        if (main.showCoordinateArrows)
+        {
+            EditorGUILayout.BeginHorizontal();
+            
+            //EditorGUILayout.LabelField("Coordinate Arrow Position", GUILayout.MaxWidth(50));
+
+            main.coordinateArrowPosition = EditorGUILayout.Vector3Field("Coordinate Arrow Position", main.coordinateArrowPosition);
+            
+            EditorGUILayout.EndHorizontal();
+        }
+        
         
         /////////////////////////////////
         //Produce A Matrix in Inspector//
