@@ -263,7 +263,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8fa1dbffe2a31db46bf89a39d2887bdd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Time: 0
+  Time: 0.821
   doTranslation: 1
   doScaling: 1
   doRotation: 1
@@ -271,62 +271,62 @@ MonoBehaviour:
   drawCubeA: 1
   drawCubeB: 1
   coordinateArrowPosition: {x: 0.18, y: 0, z: 0}
-  aTargetTranslation: {x: -4.9034586, y: 0, z: 0.67464733}
-  bTargetTranslation: {x: 4.4803853, y: 0, z: 1.9390178}
-  cTranslation: {x: -4.9034586, y: 0, z: 0.67464733}
-  aTargetRotation: {x: 0, y: 0.61631566, z: -0.7043607, w: 0.35218036}
-  bTargetRotation: {x: -0.21442252, y: 0.7504788, z: 0.53605634, w: -0.32163376}
-  cRotation: {x: 0, y: 0.6163156, z: -0.70436066, w: 0.35218033}
-  determinantA: 11
-  determinantB: -16
-  determinantC: 91.923836
+  aTargetTranslation: {x: 1.6330785, y: 0, z: 0.7458011}
+  bTargetTranslation: {x: -2.225385, y: 0, z: 0.9056101}
+  cTranslation: {x: -1.53472, y: 0, z: 0.87700427}
+  aTargetRotation: {x: 0, y: 0, z: 0, w: 1}
+  bTargetRotation: {x: -0.70710677, y: 0, z: 0, w: 0.70710677}
+  cRotation: {x: -0.6010481, y: 0, z: 0, w: 0.7992129}
+  determinantA: 1
+  determinantB: 1
+  determinantC: 1.0000001
   A:
     e00: 1
-    e01: -8
-    e02: -2
-    e03: -4.9034586
+    e01: 0
+    e02: 0
+    e03: 1.6330785
     e10: 0
     e11: 1
     e12: 0
     e13: 0
-    e20: 5
+    e20: 0
     e21: 0
     e22: 1
-    e23: 0.67464733
+    e23: 0.7458011
     e30: 0
     e31: 0
     e32: 0
     e33: 1
   B:
-    e00: -1
-    e01: -3
-    e02: -2
-    e03: 4.4803853
+    e00: 1
+    e01: 0
+    e02: 0
+    e03: -2.225385
     e10: 0
-    e11: -1
-    e12: 9
+    e11: 0
+    e12: -1
     e13: 0
     e20: 0
-    e21: -2
-    e22: 2
-    e23: 1.9390178
+    e21: 1
+    e22: 0
+    e23: 0.9056101
     e30: 0
     e31: 0
     e32: 0
     e33: 1
   C:
-    e00: -3.8341453
-    e01: -3.9998791
-    e02: -0.97069603
-    e03: -4.9034586
-    e10: 2.5297456
-    e11: 0.062499512
-    e12: -1.9413921
+    e00: 1
+    e01: 0
+    e02: -0
+    e03: -1.53472
+    e10: -0
+    e11: 0.27748233
+    e12: -0.9607308
     e13: 0
-    e20: 2.2135274
-    e21: -6.9997888
-    e22: 0.5373498
-    e23: 0.67464733
+    e20: 0
+    e21: 0.9607308
+    e22: 0.27748233
+    e23: 0.87700427
     e30: 0
     e31: 0
     e32: 0

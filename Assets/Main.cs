@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEditor;
@@ -120,7 +121,15 @@ public class Main : MonoBehaviour
         {
             aTargetRotation = NormalizeQuaternion(CalculateQuaternion(tempNormA));
             bTargetRotation = NormalizeQuaternion(CalculateQuaternion(tempNormB));
+            
+            // aTargetRotation = CalculateQuaternion(tempNormA);
+            // bTargetRotation = CalculateQuaternion(tempNormB);
         }
+        
+        
+        // Debug.Log(CalculateQuaternion(tempNormA) +" - "+ NormalizeQuaternion(aTargetRotation));
+        Debug.Log("X: "+NormalizeQuaternion(aTargetRotation).x + " Y: "+NormalizeQuaternion(aTargetRotation).y + " Z: "+NormalizeQuaternion(aTargetRotation).z + " W: "+NormalizeQuaternion(aTargetRotation).w);
+        
         
         //// Lerp the transform-vectors and insert into Matrix C
         SetTranslationInMatrix(ref C, MyVectorLerp(aTargetTranslation, bTargetTranslation, Time));
@@ -130,17 +139,16 @@ public class Main : MonoBehaviour
         cRotation = MyQLerp(aTargetRotation, bTargetRotation, Time);
         
         //// Rotation for each axis 
-        finalRotationX = cRotation * Vector3.right;
-        finalRotationY = cRotation * Vector3.up;
-        finalRotationZ = cRotation * Vector3.forward;
-
-
+        // finalRotationX = cRotation * Vector3.right;
+        // finalRotationY = cRotation * Vector3.up;
+        // finalRotationZ = cRotation * Vector3.forward;
+        
         // Input the calculated rotation and scale into Matrix C
         SetRotationAndScaleInMatrix(ref C, cRotation, cScale);
         
         //Get the lerped translation from Matrix C. -Not sure why I did it this way on only the translation-
         cTranslation = GetTranslationFromMatrix(C);
-
+        
         // Calculate the determinants so they are updated and seen in the inspector
         determinantA = CalculateDeterminant(A);
         determinantB = CalculateDeterminant(B);
@@ -160,12 +168,12 @@ public class Main : MonoBehaviour
             
             // Draw cube from A-matrix and/or B-matrix. They have darker colours for easier discerning
             if (drawCubeA)
-                DrawCubeDark(aTargetTranslation, aTargetRotation*Vector3.right*aTargetScale.x, aTargetRotation*Vector3.up*aTargetScale.y, aTargetRotation*Vector3.forward*aTargetScale.z);
+                DrawCubeDark(A);
             if (drawCubeB)
-                DrawCubeDark(bTargetTranslation, bTargetRotation*Vector3.right*bTargetScale.x, bTargetRotation*Vector3.up*bTargetScale.y, bTargetRotation*Vector3.forward*bTargetScale.z);    
+                DrawCubeDark(B);
             
             // Draw the interpolated cube
-            DrawCube(cTranslation, finalRotationX*cScale.x, finalRotationY*cScale.y, finalRotationZ*cScale.z);
+            DrawCube(C);
         }
     }
 
@@ -215,7 +223,7 @@ public class Main : MonoBehaviour
         return cross;
     }
     
-    //// Beräkna fram en Kvaternion från en matris ////
+    //// Beräkna fram en Kvaternion från en matris //// UPPDATERAD!!!!
     private Quaternion CalculateQuaternion(Matrix4x4 m)
     {
         Quaternion result = Quaternion.identity;
@@ -249,32 +257,66 @@ public class Main : MonoBehaviour
 
         switch (biggestIndex)
         {
+            //För icke transponerad matris
+            // case 0:
+            //     result.w = biggestVal;
+            //     result.x = (m[1, 2] - m[2, 1]) * mult;
+            //     result.y = (m[2, 0] - m[0, 2]) * mult;
+            //     result.z = (m[0, 1] - m[1, 0]) * mult;
+            //     Debug.Log(biggestIndex+" - "+result.z);
+            //     break;
+            //
+            // case 1:
+            //     result.x = biggestVal;
+            //     result.w = (m[1, 2] - m[2, 1]) * mult;
+            //     result.y = (m[0, 1] + m[1, 0]) * mult;
+            //     result.z = (m[2, 0] + m[0, 2]) * mult;
+            //     Debug.Log("1 - "+result.z);
+            //     break;
+            //
+            // case 2:
+            //     result.y = biggestVal;
+            //     result.x = (m[0, 1] + m[1, 0]) * mult;
+            //     result.w = (m[2, 0] - m[0, 2]) * mult;
+            //     result.z = (m[1, 2] + m[2, 1]) * mult;
+            //     Debug.Log("2 - "+result.z);
+            //     break;
+            //
+            // case 3:
+            //     result.z = biggestVal;
+            //     result.x = (m[2, 0] + m[0, 2]) * mult;
+            //     result.y = (m[1, 2] + m[2, 1]) * mult;
+            //     result.w = (m[0, 1] - m[1, 0]) * mult;
+            //     Debug.Log("3 - "+result.z);
+            //     break;
+            
+            //Fär transponerad matris
             case 0:
                 result.w = biggestVal;
-                result.x = (m[1, 2] - m[2, 1]) * mult;
-                result.y = (m[2, 0] - m[0, 2]) * mult;
-                result.z = (m[0, 1] - m[1, 0]) * mult;
+                result.x = (m[2, 1] - m[1, 2]) * mult;
+                result.y = (m[0, 2] - m[2, 0]) * mult;
+                result.z = (m[1, 0] - m[0, 1]) * mult;
                 break;
             
             case 1:
                 result.x = biggestVal;
-                result.w = (m[1, 2] - m[2, 1]) * mult;
-                result.y = (m[0, 1] + m[1, 0]) * mult;
-                result.z = (m[2, 0] + m[0, 2]) * mult;
+                result.w = (m[2, 1] - m[1, 2]) * mult;
+                result.y = (m[1, 0] + m[0, 1]) * mult;
+                result.z = (m[0, 2] + m[2, 0]) * mult;
                 break;
             
             case 2:
                 result.y = biggestVal;
-                result.x = (m[0, 1] + m[1, 0]) * mult;
-                result.w = (m[2, 0] - m[0, 2]) * mult;
-                result.z = (m[1, 2] + m[2, 1]) * mult;
+                result.x = (m[1, 0] + m[0, 1]) * mult;
+                result.w = (m[0, 2] - m[2, 0]) * mult;
+                result.z = (m[2, 1] + m[1, 2]) * mult;
                 break;
             
             case 3:
                 result.z = biggestVal;
-                result.x = (m[2, 0] + m[0, 2]) * mult;
-                result.y = (m[1, 2] + m[2, 1]) * mult;
-                result.w = (m[0, 1] - m[1, 0]) * mult;
+                result.x = (m[0, 2] + m[2, 0]) * mult;
+                result.y = (m[2, 1] + m[1, 2]) * mult;
+                result.w = (m[1, 0] - m[0, 1]) * mult;
                 break;
         }
         return result;
@@ -317,22 +359,40 @@ public class Main : MonoBehaviour
         
         float magnitude = (float)Math.Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
 
+        //För transponerad matris
         //Sätt diagonalen
-        x[0, 0] = (1 - 2*(q.y * q.y) - 2*(q.z * q.z))*s.x;
-        x[1, 1] = (1 - 2*(q.x * q.x) - 2*(q.z * q.z))*s.y;
-        x[2, 2] = (1 - 2*(q.x * q.x) - 2*(q.y * q.y))*s.z;
+        x[0, 0] = (1 - 2*(q.y * q.y) - 2*(q.z * q.z));
+        x[1, 1] = (1 - 2*(q.x * q.x) - 2*(q.z * q.z));
+        x[2, 2] = (1 - 2*(q.x * q.x) - 2*(q.y * q.y));
         
         //Resten av första raden
-        x[0, 1] = (2*(q.x * q.y) + 2*(q.w * q.z))*s.y;
-        x[0, 2] = (2*(q.x * q.z) - 2*(q.w * q.y))*s.z;
+        x[0, 1] = (2*(q.x * q.y) - 2*(q.w * q.z));
+        x[0, 2] = (2*(q.x * q.z) + 2*(q.w * q.y));
         
         //Resten av andra raden
-        x[1, 0] = (2*(q.x * q.y) - 2*(q.w * q.z))*s.x;
-        x[1, 2] = (2*(q.y * q.z) + 2*(q.w * q.x))*s.z;
+        x[1, 0] = (2*(q.x * q.y) + 2*(q.w * q.z));
+        x[1, 2] = (2*(q.y * q.z) - 2*(q.w * q.x));
         
         //Resten av tredje raden
-        x[2, 0] = (2*(q.x * q.z) + 2*(q.w * q.y))*s.x;
-        x[2, 1] = (2*(q.y * q.z) - 2*(q.w * q.x))*s.y;
+        x[2, 0] = (2*(q.x * q.z) - 2*(q.w * q.y));
+        x[2, 1] = (2*(q.y * q.z) + 2*(q.w * q.x));
+        
+        //För icke transponerad matris
+        // //Sätt diagonalen
+        // x[0, 0] = (1 - 2*(q.y * q.y) - 2*(q.z * q.z))*s.x;
+        // x[1, 1] = (1 - 2*(q.x * q.x) - 2*(q.z * q.z))*s.y;
+        // x[2, 2] = (1 - 2*(q.x * q.x) - 2*(q.y * q.y))*s.z;
+        // //Resten av första raden
+        // x[0, 1] = (2*(q.x * q.y) + 2*(q.w * q.z))*s.y;
+        // x[0, 2] = (2*(q.x * q.z) - 2*(q.w * q.y))*s.z;
+        //
+        // //Resten av andra raden
+        // x[1, 0] = (2*(q.x * q.y) - 2*(q.w * q.z))*s.x;
+        // x[1, 2] = (2*(q.y * q.z) + 2*(q.w * q.x))*s.z;
+        //
+        // //Resten av tredje raden
+        // x[2, 0] = (2*(q.x * q.z) + 2*(q.w * q.y))*s.x;
+        // x[2, 1] = (2*(q.y * q.z) - 2*(q.w * q.x))*s.y;
     }
     
     //// Hämta Translationkomponenten från en Matris. ////
@@ -408,48 +468,69 @@ public class Main : MonoBehaviour
         return lerpedQ;
     }
     
-    //// Rita en Kub av koordinataxlar ////
-    private void DrawCube(Vector3 pos, Vector3 vectorX, Vector3 vectorY, Vector3 vectorZ)
+    //// Rita en Kub av koordinataxlar //// UPPDATERAD!
+    private void DrawCube(Matrix4x4 m)
     {
-         //Parallel to X-axis arrows
-        vectors.Draw(pos,pos + vectorX, Color.red);
-        vectors.Draw(pos+vectorY, pos+vectorY+vectorX, Color.red);
-        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorX, Color.red);
-        vectors.Draw(pos+vectorZ+vectorY, pos+vectorZ+vectorY+vectorX,Color.red);
+        Vector3 ogCorner = m*new Vector4(0,0,0,1);
+        Vector3 X = m*new Vector4(1,0,0,1);
+        Vector3 Y = m*new Vector4(0,1,0,1);
+        Vector3 Z = m*new Vector4(0,0,1,1);
+        Vector3 XPlusY = m*new Vector4(1,1,0,1);
+        Vector3 XPlusZ = m*new Vector4(1,0,1,1);
+        Vector3 YPlusZ = m*new Vector4(0,1,1,1);
+        Vector3 xPlusYPlusZ = m*new Vector4(1,1,1,1);
+        
+        
+        //Parallel to X-axis arrows
+        vectors.Draw(ogCorner,X, Color.red);
+        vectors.Draw(Y, XPlusY, Color.red);
+        vectors.Draw(Z, XPlusZ, Color.red);
+        vectors.Draw(YPlusZ, xPlusYPlusZ,Color.red);
         
         //Parallel to Y-axis arrows
-        vectors.Draw(pos,pos + vectorY, Color.green);
-        vectors.Draw(pos+vectorX, pos+vectorX+vectorY, Color.green);
-        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorY, Color.green);
-        vectors.Draw(pos+vectorZ+vectorX, pos+vectorZ+vectorX+vectorY,Color.green);
+        vectors.Draw(ogCorner,Y, Color.green);
+        vectors.Draw(X, XPlusY, Color.green);
+        vectors.Draw(Z, YPlusZ, Color.green);
+        vectors.Draw(XPlusZ, xPlusYPlusZ, Color.green);
         
         //Parallel to Z-axis arrows
-        vectors.Draw(pos,pos + vectorZ, Color.blue);
-        vectors.Draw(pos+vectorY, pos+vectorY+vectorZ, Color.blue);
-        vectors.Draw(pos+vectorX, pos+vectorX+vectorZ, Color.blue);
-        vectors.Draw(pos+vectorX+vectorY, pos+vectorX+vectorY+vectorZ,Color.blue);
+        vectors.Draw(ogCorner,Z, Color.blue);
+        vectors.Draw(Y, YPlusZ, Color.blue);
+        vectors.Draw(X, XPlusZ, Color.blue);
+        vectors.Draw(XPlusY, xPlusYPlusZ, Color.blue);
     }
-    
-    //// Rita en mörkare Kub av koordinataxlar ////
-    private void DrawCubeDark(Vector3 pos, Vector3 vectorX, Vector3 vectorY, Vector3 vectorZ)
+
+    //// Rita en mörkare Kub av koordinataxlar //// UPPDATERAD!
+    private void DrawCubeDark(Matrix4x4 m)
     {
-         //Parallel to X-axis arrows
-        vectors.Draw(pos,pos + vectorX, new Color(0.45f, 0f, 0f));
-        vectors.Draw(pos+vectorY, pos+vectorY+vectorX, new Color(0.45f, 0f, 0f));
-        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorX, new Color(0.45f, 0f, 0f));
-        vectors.Draw(pos+vectorZ+vectorY, pos+vectorZ+vectorY+vectorX,new Color(0.45f, 0f, 0f));
+
+        Vector3 ogCorner = m*new Vector4(0,0,0,1);
+        Vector3 X = m*new Vector4(1,0,0,1);
+        Vector3 Y = m*new Vector4(0,1,0,1);
+        Vector3 Z = m*new Vector4(0,0,1,1);
+        Vector3 XPlusY = m*new Vector4(1,1,0,1);
+        Vector3 XPlusZ = m*new Vector4(1,0,1,1);
+        Vector3 YPlusZ = m*new Vector4(0,1,1,1);
+        Vector3 xPlusYPlusZ = m*new Vector4(1,1,1,1);
+        
+        
+        //Parallel to X-axis arrows
+        vectors.Draw(ogCorner,X, new Color(0.45f, 0f, 0f));
+        vectors.Draw(Y, XPlusY, new Color(0.45f, 0f, 0f));
+        vectors.Draw(Z, XPlusZ, new Color(0.45f, 0f, 0f));
+        vectors.Draw(YPlusZ, xPlusYPlusZ,new Color(0.45f, 0f, 0f));
         
         //Parallel to Y-axis arrows
-        vectors.Draw(pos,pos + vectorY, new Color(0f, 0.45f, 0f));
-        vectors.Draw(pos+vectorX, pos+vectorX+vectorY,  new Color(0f, 0.45f, 0f));
-        vectors.Draw(pos+vectorZ, pos+vectorZ+vectorY,  new Color(0f, 0.45f, 0f));
-        vectors.Draw(pos+vectorZ+vectorX, pos+vectorZ+vectorX+vectorY, new Color(0f, 0.45f, 0f));
+        vectors.Draw(ogCorner,Y, new Color(0f, 0.45f, 0f));
+        vectors.Draw(X, XPlusY,  new Color(0f, 0.45f, 0f));
+        vectors.Draw(Z, YPlusZ,  new Color(0f, 0.45f, 0f));
+        vectors.Draw(XPlusZ, xPlusYPlusZ, new Color(0f, 0.45f, 0f));
         
         //Parallel to Z-axis arrows
-        vectors.Draw(pos,pos + vectorZ, new Color(0f, 0f, 0.45f));
-        vectors.Draw(pos+vectorY, pos+vectorY+vectorZ, new Color(0f, 0f, 0.45f));
-        vectors.Draw(pos+vectorX, pos+vectorX+vectorZ, new Color(0f, 0f, 0.45f));
-        vectors.Draw(pos+vectorX+vectorY, pos+vectorX+vectorY+vectorZ, new Color(0f, 0f, 0.45f));
+        vectors.Draw(ogCorner,Z, new Color(0f, 0f, 0.45f));
+        vectors.Draw(Y, YPlusZ, new Color(0f, 0f, 0.45f));
+        vectors.Draw(X, XPlusZ, new Color(0f, 0f, 0.45f));
+        vectors.Draw(XPlusY, xPlusYPlusZ, new Color(0f, 0f, 0.45f));
     }
 }
 
